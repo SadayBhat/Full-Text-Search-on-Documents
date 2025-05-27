@@ -1,129 +1,145 @@
 # Full-Text-Search-on-Documents
 
----
+This project implements a Full-Text Search (FTS) API that allows users to upload PDF documents, perform efficient searches, and retrieve results based on matching text content. It uses FastAPI for handling API requests and PostgreSQL for storing the data and handling the search functionality.
 
-```markdown
-# 🧠 Full-Text Search (FTS) API using FastAPI & PostgreSQL
+Introduction
 
-This project is a robust document search API built with **FastAPI** and **PostgreSQL Full-Text Search (FTS)**. It enables users to **upload documents**, **extract text**, and **perform efficient full-text searches** across large corpora of PDFs. Matched documents can be downloaded directly or as a zip archive.
+This project is a document search system that allows users to upload documents (specifically PDF files), search through them using Full-Text Search (FTS) capabilities in PostgreSQL, and download the results in various formats (individually or as a zip file). The main goal of this system is to efficiently handle large document collections with the ability to search text within these documents.
 
----
+Project Flow
 
-## 📑 Table of Contents
+The flow of the project is designed to efficiently handle the process of uploading documents, storing them in a searchable format, performing searches, and responding with the appropriate files. Here is the general flow of how the system works:
 
-- [🚀 Features](#-features)
-- [📂 Project Structure](#-project-structure)
-- [⚙️ Tech Stack](#️-tech-stack)
-- [📦 Setup Instructions](#-setup-instructions)
-- [🔍 How It Works](#-how-it-works)
-- [📌 API Endpoints](#-api-endpoints)
-- [🧪 Running Tests](#-running-tests)
-- [📌 Future Improvements](#-future-improvements)
+Uploading Documents:
 
----
+The user uploads a PDF file through the /upload API endpoint.
 
-## 🚀 Features
+The file is processed, and text is extracted using libraries like PyMuPDF or pdfminer.six.
 
-- Upload PDFs and extract searchable text
-- Full-text search using PostgreSQL's native FTS engine
-- Download matched files individually or as a zip archive
-- Logging, exception handling, and modular architecture
-- Token-based security integration ready (optional)
+The extracted text is stored in a PostgreSQL database in a searchable format (using PostgreSQL's Full-Text Search (FTS) functionality).
 
----
+Performing a Search:
 
-## 📂 Project Structure
+A user submits a query through the /search API endpoint.
 
-```bash
-FTS/
-├── app/
-│   ├── api/v1/endpoints/         # FastAPI routes
-│   │   ├── search_routes.py
-│   │   └── upload_routes.py
-│   ├── core/
-│   │   ├── config.py             # App config and env loading
-│   │   └── constants/            # All constants used in app
-│   ├── dao/
-│   │   └── search_dao.py         # DB access layer (DAO pattern)
-│   ├── database/
-│   │   ├── models/               # ORM Models (SearchIndex)
-│   │   └── rds.py                # DB connection setup
-│   ├── services/
-│   │   ├── implementation/
-│   │   │   ├── file_service.py   # File extraction and handling
-│   │   │   └── search_service.py # FTS logic and ZIP streaming
-│   └── utils/
-│       ├── file_utils.py         # File utilities
-│       └── text_extraction.py    # PDF -> Text logic
-│   └── main.py                   # FastAPI app entrypoint
-```
+The query is processed by the SearchService where the query is sanitized, cleaned, and formatted to be compatible with PostgreSQL’s Full-Text Search.
 
----
+The cleaned query is then used to perform a search in the PostgreSQL database using the tsquery feature, which helps find matches based on the indexed text data stored in the database.
 
-## ⚙️ Tech Stack
+The results are ranked by relevance using the ts_rank function in PostgreSQL, which orders the results by the degree of relevance to the query.
 
-| Layer            | Tech                          |
-|------------------|-------------------------------|
-| Backend          | Python, FastAPI               |
-| Full-Text Search | PostgreSQL (TSVector, TSQuery)|
-| ORM              | SQLAlchemy                    |
-| PDF Processing   | PyMuPDF                       |
-| File Streaming   | zipstream, StreamingResponse  |
-| Deployment       | Uvicorn                       |
+Returning Results:
 
----
+If only one document is found, it is returned directly to the user via a FileResponse.
 
-## 📦 Setup Instructions
+If multiple documents are found, they are bundled together into a zip archive and returned to the user using StreamingResponse, allowing for efficient download of multiple files without having to save the zip file on disk.
 
-1. **Clone the repo**
+Error Handling:
 
-```bash
-git clone https://github.com/yourname/Full-Text-Search-on-Documents.git
-cd Full-Text-Search-on-Documents
-```
+If no documents match the query, a 404 Not Found response is returned.
 
-2. **Install dependencies**
+If an unexpected error occurs, a 500 Internal Server Error response is returned.
 
-```bash
-pip install -r requirements.txt
-```
+How Full-Text Search Works
 
-3. **Setup PostgreSQL**
+Full-Text Search (FTS) in PostgreSQL
 
-Make sure PostgreSQL is running and create a database. Configure connection in `.env`.
+PostgreSQL's Full-Text Search is an advanced mechanism for efficiently searching through large amounts of text-based data. It supports:
 
-```env
-DATABASE_URL=postgresql://username:password@localhost/dbname
-```
+Text Search Configuration: A predefined method of handling linguistic variations, stop words, and stemming.
 
-4. **Start the app**
+Text Search Operators: A set of operators (AND, OR, NOT) and ranking features to help users refine their searches.
 
-```bash
-uvicorn app.main:app --reload
-```
+Indexes (TSVector): Full-text search requires indexing the documents using TSVector which allows for fast searches.
 
----
+Search Queries (TSQuery): The search queries are written using the TSQuery format and executed against the indexed text.
 
-## 🔍 How It Works
+In the context of this project:
 
-- **Upload**: PDFs are uploaded via the `/upload` endpoint, text is extracted and stored in a PostgreSQL table with a TSVector column for full-text search.
-- **Search**: Queries hit the `/search` endpoint and use `websearch_to_tsquery` to match phrases, operators (AND, OR, etc.), and phrases like a Google-style search.
-- **Download**: Single file? Serve via `FileResponse`. Multiple matches? Stream as a zip via `StreamingResponse` without writing to disk.
+When a PDF is uploaded, the extracted text is stored in a PostgreSQL table with a column of type TSVector, which contains the vectorized representation of the document's text.
 
----
+When a search query is received, the system first cleans the text (removes special characters, spaces, etc.) and converts it into a valid TSQuery.
 
-## 📌 API Endpoints
+This TSQuery is then matched against the indexed data in the TSVector columns of the PostgreSQL table.
 
-### 🔼 Upload
+The results are ranked using ts_rank based on relevance, and the top results are returned to the user.
 
-```http
+This approach is efficient as PostgreSQL can leverage its optimized indexing system to provide fast search results even for large datasets.
+
+Example Search Flow:
+
+Step 1: User uploads a PDF containing text like: "The boundaries of Plot No. 28 are clearly defined as South, North, East, and West."
+
+Step 2: The extracted text is stored in a TSVector column in the database.
+
+Step 3: User submits a query like boundaries: plot 28.
+
+Step 4: The system converts the query into a TSQuery (i.e., to_tsquery('boundaries & plot & 28')).
+
+Step 5: PostgreSQL performs the search and returns the relevant document(s) based on the ranked results.
+
+Detailed System Components
+
+1. API Endpoints
+
+POST /upload: Uploads a PDF, extracts text, and stores it in the database.
+
+GET /search: Searches for documents based on a query string.
+
+2. Service Layer
+
+SearchService: Handles search query formatting, execution, and result ranking.
+
+FileService: Manages the logic for file handling, including text extraction and file streaming (including zip creation for multiple file downloads).
+
+3. DAO Layer (Data Access Object)
+
+SearchDAO: Provides database interaction for searching and retrieving results from PostgreSQL.
+
+It queries the SearchIndex table for matches using FTS functionality.
+
+4. Database Layer
+
+PostgreSQL: Stores the documents and their corresponding text in a searchable format. It uses TSVector for full-text indexing.
+
+SearchIndex Model: Represents the table that stores the document text and metadata in PostgreSQL.
+
+5. File Handling
+
+PyMuPDF/pdfminer.six: These libraries are used for extracting text from the uploaded PDF documents.
+
+zipstream: A utility to stream the matching documents as a zip file.
+
+API Endpoints
+
+1. Upload PDF Document
+
 POST /api/v1/upload
-```
-**Form-data**: `file=<pdf>`
 
-### 🔍 Search
+Request: Upload PDF files using form-data with key file.
 
-```http
-GET /api/v1/search/?query=branch+head
-```
+Response: 200 OK on successful upload, 400 Bad Request if the file is invalid.
 
+2. Search Documents
+
+GET /api/v1/search/?query=your+search+query
+
+Request: Query string parameter query to search for documents.
+
+Response:
+
+If matches are found, the result will be a downloadable file or a zip archive of files.
+
+If no matches are found, it returns 404 Not Found.
+
+Tech Stack
+
+Backend: FastAPI (Python)
+
+Full-Text Search: PostgreSQL (TSVector, TSQuery)
+
+File Handling: PyMuPDF, pdfminer.six, zipstream
+
+Database: PostgreSQL with SQLAlchemy ORM
+
+APIs: RESTful APIs built using FastAPI
