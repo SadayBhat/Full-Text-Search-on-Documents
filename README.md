@@ -126,8 +126,4 @@ POST /api/v1/upload
 ```http
 GET /api/v1/search/?query=branch+head
 ```
-**Response**:
-- 200: File / Zip
-- 404: No match found
 
----
