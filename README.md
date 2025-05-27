@@ -81,3 +81,6 @@ This approach is efficient as PostgreSQL can leverage its optimized indexing sys
 ### 1. **Upload PDF Document**
 ```http
 POST /api/v1/upload
+- **Request: Upload PDF files using form-data with key file.
+- **Response: 200 OK on successful upload, 400 Bad Request if the file is invalid.
+
