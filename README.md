@@ -78,8 +78,8 @@ FTS/
 1. **Clone the repo**
 
 ```bash
-git clone https://github.com/yourname/fts-api.git
-cd fts-api
+git clone https://github.com/yourname/Full-Text-Search-on-Documents.git
+cd Full-Text-Search-on-Documents
 ```
 
 2. **Install dependencies**
