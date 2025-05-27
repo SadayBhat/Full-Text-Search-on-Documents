@@ -81,6 +81,22 @@ This approach is efficient as PostgreSQL can leverage its optimized indexing sys
 ### 1. **Upload PDF Document**
 ```http
 POST /api/v1/upload
+```
 - **Request: Upload PDF files using form-data with key file.
 - **Response: 200 OK on successful upload, 400 Bad Request if the file is invalid.
 
+### 2. Search Documents
+```http
+GET /api/v1/search/?query=your+search+query
+```
+- **Request:** Query string parameter query to search for documents.
+- **Response:**
+  - If matches are found, the result will be a downloadable file or a zip archive of files.
+  - If no matches are found, it returns 404 Not Found.
+
+### Tech Stack
+- **Backend:** FastAPI (Python)
+- **Full-Text Search:** PostgreSQL (TSVector, TSQuery)
+- **File Handling:** PyMuPDF, pdfminer.six, zipstream
+- **Database:** PostgreSQL with SQLAlchemy ORM
+- **APIs:** RESTful APIs built using FastAPI
